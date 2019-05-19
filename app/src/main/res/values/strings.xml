@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Black List</string>
+    <string name="title_numbers">Phone Numbers</string>
+    <string name="title_history">History</string>
+    <string name="input_hint">Enter a phone number.</string>
+    <string name="subtitle_format_numbers">Added %s</string>
+    <string name="subtitle_format_history">Received %s</string>
+</resources>
