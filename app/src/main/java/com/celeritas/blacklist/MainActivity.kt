@@ -1,18 +1,31 @@
 package com.celeritas.blacklist
 
+import android.Manifest.permission.CALL_PHONE
+import android.Manifest.permission.READ_PHONE_STATE
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.support.design.widget.BottomNavigationView
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
+import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
+import android.telephony.PhoneNumberUtils
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.Toast
 import com.hbb20.CountryCodePicker
+import java.util.*
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var numbersList: RecyclerView
     private lateinit var historyList: RecyclerView
     private lateinit var db: DbWrapper
+    private lateinit var callHandler: CallNotificationHandler
 
     private val onNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
         when (item.itemId) {
@@ -31,15 +45,9 @@ class MainActivity : AppCompatActivity() {
                 numbersList.visibility = View.VISIBLE
                 historyList.visibility = View.GONE
                 inputPanel.visibility = View.VISIBLE
-                //itemsList.adapter = ItemListAdapter(numbers, getString(R.string.subtitle_format_numbers))
-                //itemsList.adapter?.notifyDataSetChanged()
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_history -> {
-                //itemsList.adapter = ItemListAdapter(history, getString(R.string.subtitle_format_history))
-                //itemsList.adapter?.notifyDataSetChanged()
-                //inputPanel.layoutParams.height = 0
-                //inputPanel.requestLayout()
                 numbersList.visibility = View.GONE
                 historyList.visibility = View.VISIBLE
                 inputPanel.visibility = View.GONE
@@ -102,10 +110,61 @@ class MainActivity : AppCompatActivity() {
         }
 
         inputPanel = findViewById(R.id.inputLayout)
+
+        acquirePermissions()
+
+        callHandler = CallNotificationHandler { number ->
+            val formatted = PhoneNumberUtils.formatNumber(number, Locale.getDefault().country)
+            var message = "Received call: $formatted"
+
+            val found = numbers.items.find { it.number == formatted }
+            found?.let {
+                message = "Blocked call: $formatted"
+                CallReceiver.endCall(this)
+            }
+
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
+
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(callHandler, IntentFilter(NumberNotificationData.EVENT_NAME))
+
+    }
+
+    private fun acquirePermissions() {
+        val permissions = arrayOf(READ_PHONE_STATE, CALL_PHONE)
+        val missing =
+            permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+                .toTypedArray()
+
+        if (missing.isNotEmpty()) {
+            ActivityCompat.requestPermissions(
+                this,
+                missing,
+                PERMISSIONS_PHONE_STATE_REQUEST
+            )
+        }
+    }
+
+    override fun onDestroy() {
+        db.close()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(callHandler)
+        super.onDestroy()
     }
 
     private fun hideKeyboard() {
         val inputManager: InputMethodManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         inputManager.hideSoftInputFromWindow(inputField.windowToken, 0)
     }
+
+    private val PERMISSIONS_PHONE_STATE_REQUEST = 3
+}
+
+class CallNotificationHandler(val callback: (String) -> Unit) : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        val number = intent?.getStringExtra(NumberNotificationData.FIELD) ?: return
+
+        callback(number)
+    }
+
 }
