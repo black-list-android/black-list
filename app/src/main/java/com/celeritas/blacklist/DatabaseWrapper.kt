@@ -30,7 +30,7 @@ data class Table(val name: TableName, val db: DbWrapper) {
                 "${BaseColumns._ID} INTEGER PRIMARY KEY, " +
                 "${Entry.NUMBER} TEXT, " +
                 "${Entry.DATE} INTEGER, " +
-                "${Entry.BLOCK_TYPE} INTEGER)"
+                "${Entry.HINT} TEXT)"
 
     fun add(entry: DataItem) {
         val writable = db.writableDatabase
@@ -62,9 +62,9 @@ data class Table(val name: TableName, val db: DbWrapper) {
                 while (moveToNext()) {
                     val number = getString(getColumnIndexOrThrow(Entry.NUMBER))
                     val date = getLong(getColumnIndexOrThrow(Entry.DATE))
-                    val blockType = getInt(getColumnIndexOrThrow(Entry.BLOCK_TYPE))
+                    val hint = getString(getColumnIndexOrThrow(Entry.HINT))
 
-                    result.add(DataItem(number, Date(date), BlockType.fromInt(blockType)))
+                    result.add(DataItem(number, Date(date), hint))
                 }
             }
 
@@ -77,7 +77,7 @@ data class Table(val name: TableName, val db: DbWrapper) {
 object Entry : BaseColumns {
     const val NUMBER = "number"
     const val DATE = "date"
-    const val BLOCK_TYPE = "block_type"
+    const val HINT = "hint"
 }
 
 enum class TableName {
@@ -89,6 +89,6 @@ fun DataItem.values(): ContentValues {
     return ContentValues().apply {
         put(Entry.NUMBER, number)
         put(Entry.DATE, date.time)
-        put(Entry.BLOCK_TYPE, blockType.rawValue)
+        put(Entry.HINT, hint)
     }
 }

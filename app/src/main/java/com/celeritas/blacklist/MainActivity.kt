@@ -26,9 +26,7 @@ import android.widget.Toast
 import com.hbb20.CountryCodePicker
 import java.util.*
 
-
 class MainActivity : AppCompatActivity() {
-
     private lateinit var inputField: EditText
     private lateinit var inputPanel: LinearLayout
     private lateinit var addButton: ImageButton
@@ -85,12 +83,12 @@ class MainActivity : AppCompatActivity() {
         history = DataSet(db.history)
 
         numbersList = findViewById(R.id.numbersList)
-        val adapter = ItemListAdapter(numbers, getString(R.string.subtitle_format_numbers))
+        val adapter = ItemListAdapter(numbers, getString(R.string.subtitle_format_numbers), true)
         numbersList.adapter = adapter
         ItemTouchHelper(SwipeToDelete(adapter)).attachToRecyclerView(numbersList)
 
         historyList = findViewById(R.id.historyList)
-        historyList.adapter = ItemListAdapter(history, getString(R.string.subtitle_format_history))
+        historyList.adapter = ItemListAdapter(history, getString(R.string.subtitle_format_history), false)
         historyList.visibility = View.GONE
 
         listOf(numbersList, historyList).forEach {
@@ -101,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         addButton.setOnClickListener {
             if (countryPicker.isValidFullNumber) {
                 val number = countryPicker.formattedFullNumber
-                numbers.add(number, BlockType.ALL)
+                numbers.add(number)
                 numbersList.adapter?.notifyDataSetChanged()
                 inputField.text = null
             }
@@ -119,8 +117,10 @@ class MainActivity : AppCompatActivity() {
 
             val found = numbers.items.find { it.number == formatted }
             found?.let {
-                message = "Blocked call: $formatted"
+                val name = if(it.hint.isEmpty()) formatted else "$formatted (${it.hint})"
+                message = "Blocked call: $name"
                 CallReceiver.endCall(this)
+                history.add(formatted, it.hint, false)
             }
 
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

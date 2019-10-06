@@ -41,8 +41,6 @@ class CallReceiver : BroadcastReceiver() {
             endCallMethod.isAccessible = true
 
             endCallMethod.invoke(telephonyService)
-
-            //val telephonyService: com.android.internal.telephony.ITelephony = getITelephony.invoke(telephonyManager)
         }
     }
 }

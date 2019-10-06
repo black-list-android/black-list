@@ -6,20 +6,20 @@ import java.util.*
 data class DataItem(
     val number: String,
     val date: Date,
-    var blockType: BlockType
+    var hint: String
 )
 
 class DataSet(private val table: Table) {
     private val entries = table.items.toMutableList()
 
-    fun add(number: String, blockType: BlockType): Int {
+    fun add(number: String, hint: String = "", isUnique: Boolean = true): Int {
         val formatted = PhoneNumberUtils.formatNumber(number, Locale.getDefault().country)
 
         val existing = entries.indexOfFirst { it.number == formatted }
 
-        if (existing >= 0) return existing
+        if (existing >= 0 && isUnique) return existing
 
-        val item = DataItem(formatted, Date(), blockType)
+        val item = DataItem(formatted, Date(), hint)
 
         entries.add(item)
 
@@ -35,33 +35,13 @@ class DataSet(private val table: Table) {
         table.remove(entry.number)
     }
 
-    fun updateBlockType(at: Int) {
+    fun updateHint(at: Int, with: String) {
         val item = items[at]
-        item.blockType = nextBlockType(item.blockType)
+        item.hint = with
 
         table.update(item)
     }
 
     val items: List<DataItem>
         get() = entries
-}
-
-enum class BlockType(val rawValue: Int) {
-    SMS(0),
-    NUMBER(1),
-    ALL(2);
-
-    companion object {
-        fun fromInt(value: Int): BlockType {
-            return values().first { it.rawValue == value }
-        }
-    }
-}
-
-private fun nextBlockType(current: BlockType): BlockType {
-    return when (current) {
-        BlockType.ALL -> BlockType.NUMBER
-        BlockType.NUMBER -> BlockType.SMS
-        BlockType.SMS -> BlockType.ALL
-    }
 }
